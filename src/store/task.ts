@@ -1,18 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-
-interface Task {
-    id: number
-    title: string
-    status: string
-    attachment?: string | null
-}
-
-interface TasksResponse {
-    data: Task[]
-    prev_page_url: string | null
-    next_page_url: string | null
-}
+import { TasksResponse } from '../types/task'
 
 export const useTaskStore = defineStore('task', () => {
     const taskList = ref<TasksResponse>()

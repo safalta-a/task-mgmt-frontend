@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { Task, TasksResponse } from '../types/task'
+import { useTaskStore } from '../store/task'
 
 // Components for icons
 import EditIcon from '../assets/edit.svg?component'
@@ -8,20 +10,7 @@ import DeleteIcon from '../assets/delete.svg?component'
 import Attachment from '../assets/attachment.svg?component'
 import CloseIcon from '../assets/cancel.svg?component'
 
-interface Task {
-  id: number
-  title: string
-  status: string
-  attachment?: string | null
-}
-
-interface TasksResponse {
-  data: Task[]
-  prev_page_url: string | null
-  next_page_url: string | null
-}
-
-// Reactive references for data and states
+const taskStore = useTaskStore()
 const tasks = ref<TasksResponse | null>(null)
 const newTask = ref<{ title: string, status: string }>({ title: '', status: 'pending' })
 const editingTask = ref<Task | null>(null)
@@ -37,7 +26,7 @@ const fetchTasks = async (url = '/tasks') => {
   try {
     const res = await axios.get(url)
     if (res.data.response.code === 200) {
-      tasks.value = res.data.response.data
+      taskStore.storeTaskDetails(res.data.response.data)
     }
   } catch (error) {
     errorMessage.value = 'Failed to fetch tasks.'
@@ -138,8 +127,8 @@ onMounted(() => {
 
     <!-- Task List -->
     <div v-if="loading" class="loading">Loading tasks...</div>
-    <div v-if="!loading && tasks?.data.length" class="task-list">
-      <div v-for="task in tasks.data" :key="task.id" class="task-card">
+    <div v-if="!loading && taskStore.taskList?.data.length" class="task-list">
+      <div v-for="task in taskStore.taskList.data" :key="task.id" class="task-card">
         <div class="task-content">
           <h3>{{ task.title }}</h3>
           <p class="status">{{ task.status }}</p>
@@ -157,8 +146,8 @@ onMounted(() => {
 
     <!-- Pagination -->
     <div class="pagination">
-      <button v-if="tasks?.prev_page_url" @click="fetchTasks(tasks.prev_page_url)">Previous</button>
-      <button v-if="tasks?.next_page_url" @click="fetchTasks(tasks.next_page_url)">Next</button>
+      <button v-if="taskStore.taskList?.prev_page_url" @click="fetchTasks(taskStore.taskList.prev_page_url)">Previous</button>
+      <button v-if="taskStore.taskList?.next_page_url" @click="fetchTasks(taskStore.taskList.next_page_url)">Next</button>
     </div>
 
     <!-- Add/Edit Task Modal -->
