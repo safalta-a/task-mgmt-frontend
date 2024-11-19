@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
-import { Task, TasksResponse } from '../types/task'
+import { Task } from '../types/task'
 import { useTaskStore } from '../store/task'
 
 // Components for icons
@@ -11,7 +11,6 @@ import Attachment from '../assets/attachment.svg?component'
 import CloseIcon from '../assets/cancel.svg?component'
 
 const taskStore = useTaskStore()
-const tasks = ref<TasksResponse | null>(null)
 const newTask = ref<{ title: string, status: string }>({ title: '', status: 'pending' })
 const editingTask = ref<Task | null>(null)
 const file = ref<File | null>(null)
@@ -44,7 +43,7 @@ const addTask = async () => {
     formData.append('status', newTask.value.status)
     if (file.value) formData.append('attachment', file.value)
 
-    await axios.post('/tasks', formData)
+    await axios.post('/addTask', formData)
     await fetchTasks()
     resetModal()
   } catch (error) {
@@ -55,7 +54,7 @@ const addTask = async () => {
 // Delete a task
 const deleteTask = async (id: number) => {
   try {
-    await axios.delete(`/tasks/${id}`)
+    await axios.post(`/deleteTask/${id}`)
     await fetchTasks()
   } catch (error) {
     console.error('Error deleting task:', error)
@@ -66,15 +65,7 @@ const openEditTaskModal = (task: Task) => {
   editingTask.value = { ...task }
   isEditing.value = true
   showModal.value = true
-};
-
-const modalTitle = computed(() => {
-  return isEditing.value ? editingTask.value?.title : newTask.value.title
-})
-
-const statusModal = computed(() => {
-  return isEditing.value ? editingTask.value?.status : newTask.value.status
-})
+}
 
 // Update an existing task
 const updateTask = async () => {
@@ -85,7 +76,7 @@ const updateTask = async () => {
     formData.append('status', editingTask.value.status)
     if (file.value) formData.append('attachment', file.value)
 
-    await axios.post(`/tasks/${editingTask.value.id}`, formData)
+    await axios.post(`/editTask/${editingTask.value.id}`, formData)
     await fetchTasks()
     resetModal()
   } catch (error) {
@@ -163,8 +154,18 @@ onMounted(() => {
           <div class="form-group">
             <label for="task-title">Title</label>
             <input
+              v-if="!isEditing"
               id="task-title"
-              v-model="modalTitle"
+              v-model="newTask.title"
+              type="text"
+              class="form-control"
+              placeholder="Enter task title"
+              required
+            />
+            <input
+              v-if="isEditing && editingTask"
+              id="task-title"
+              v-model="editingTask.title"
               type="text"
               class="form-control"
               placeholder="Enter task title"
@@ -173,7 +174,11 @@ onMounted(() => {
           </div>
           <div class="form-group">
             <label for="task-status">Status</label>
-            <select class="form-control" id="task-status" v-model="statusModal">
+            <select v-if="!isEditing"  class="form-control" id="task-status" v-model="newTask.status">
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+            </select>
+            <select v-if="isEditing && editingTask" class="form-control" id="task-status" v-model="editingTask.status">
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
             </select>
